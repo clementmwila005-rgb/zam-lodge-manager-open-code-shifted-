@@ -11,7 +11,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "deploy": "wrangler pages deploy dist",
+    "deploy:worker": "wrangler deploy"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
