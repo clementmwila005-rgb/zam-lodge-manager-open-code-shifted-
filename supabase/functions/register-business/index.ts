@@ -64,7 +64,7 @@ serve(async (req) => {
         room_count: roomCount ?? 0,
         plan: "trial",
         subscription_status: "trial",
-        subscription_expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        subscription_expires_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
         service_fee_amount: 50,
         delivery_fee_amount: 0,
       })
