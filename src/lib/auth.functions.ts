@@ -29,6 +29,7 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3enN5dWVtc2dpY2F3Z3Zhd2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3ODU2NjAsImV4cCI6MjEwMDM2MTY2MH0.yqkB1TiEAZ-NIAKgCy_gf6GQEAojtzNm21WA-463sdE";
 async function callEdge<T = unknown>(name: string, body: unknown, authToken?: string): Promise<T> {
   const token = authToken || (await supabase.auth.getSession()).data.session?.access_token;
+  if (!token) throw new Error("Not authenticated — please sign in again");
   const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
     method: "POST",
     headers: {

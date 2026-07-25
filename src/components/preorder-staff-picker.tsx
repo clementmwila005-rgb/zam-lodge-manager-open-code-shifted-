@@ -33,7 +33,7 @@ export function StaffPicker({ businessId, value, onChange }: Props) {
         .in("id", ids)
         .eq("is_active", true)
         .order("full_name");
-      return (data ?? []).filter((s) => s.phone) as StaffMember[];
+      return (data ?? []) as StaffMember[];
     },
   });
 
@@ -60,8 +60,7 @@ export function StaffPicker({ businessId, value, onChange }: Props) {
       <div className="space-y-2">
         <Label>Send to staff</Label>
         <p className="text-xs text-muted-foreground">
-          No active staff with phone numbers found. Add staff with phone numbers in Staff
-          settings.
+          No active staff found. Add staff in Staff settings.
         </p>
       </div>
     );
@@ -82,7 +81,7 @@ export function StaffPicker({ businessId, value, onChange }: Props) {
             />
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-medium">{s.full_name ?? "Unnamed"}</div>
-              <div className="truncate text-xs text-muted-foreground">{s.phone}</div>
+              <div className="truncate text-xs text-muted-foreground">{s.phone ?? "No phone (in-app only)"}</div>
             </div>
           </label>
         ))}

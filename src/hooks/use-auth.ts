@@ -42,8 +42,11 @@ export function useSignOut(redirectTo?: string) {
   return async () => {
     await qc.cancelQueries();
     qc.clear();
-    await supabase.auth.signOut();
-    window.location.href = redirectTo || "/auth";
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      window.location.href = redirectTo || "/auth";
+    }
   };
 }
 

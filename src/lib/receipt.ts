@@ -46,9 +46,10 @@ export async function loadReceipt(orderId: string): Promise<ReceiptData | null> 
         ? supabase.from("profiles").select("full_name").eq("id", order.created_by).maybeSingle()
         : Promise.resolve({ data: null }),
     ]);
+  if (!business) return null;
 
   return {
-    business: business!,
+    business,
     orderId: order.id,
     orderType: order.order_type as "restaurant" | "bar",
     tableNumber: table?.table_number ?? null,

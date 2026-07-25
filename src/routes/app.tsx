@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useMe, useSession, useSignOut, primaryRole, type BusinessWithLogo } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/app")({ component: AppLayout });
 
@@ -31,11 +32,23 @@ function AppLayout() {
     }
   }, [isSuperEarly, nav]);
 
+  const isSubBlocked =
+    !isSuperEarly &&
+    me?.business &&
+    (me.business.subscription_status === "suspended" ||
+      (me.business.subscription_status === "expired") ||
+      (me.business.subscription_status === "trial" &&
+        me.business.subscription_expires_at &&
+        new Date(me.business.subscription_expires_at) < new Date()));
+  useEffect(() => {
+    if (isSubBlocked) {
+      nav({ to: "/app/subscription", replace: true });
+    }
+  }, [isSubBlocked, nav]);
+
   const userId = me?.profile?.id;
   const bizId = me?.profile?.business_id;
-  const earlyRole = primaryRole(me?.roles);
-  const isSuperEarly2 = earlyRole === "super_admin";
-  const showMessages = !isSuperEarly2 && !!userId;
+  const showMessages = !isSuperEarly && !!userId;
 
   const unreadCount = useQuery({
     queryKey: ["unread-messages", userId],
@@ -52,7 +65,7 @@ function AppLayout() {
   });
 
   useEffect(() => {
-    if (!userId || !bizId || isSuperEarly2) return;
+    if (!userId || !bizId || isSuperEarly) return;
     const channel = supabase
       .channel("new-messages")
       .on("postgres_changes", {
@@ -67,16 +80,45 @@ function AppLayout() {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [userId, bizId, isSuperEarly2]);
+  }, [userId, bizId, isSuperEarly]);
 
   if (loading || meLoading || !me) {
     return <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">Loading...</div>;
   }
 
   const role = primaryRole(me.roles);
+  const isOwner = role === "owner";
+
+  if (isSubBlocked) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background">
+        <div className="w-full max-w-sm space-y-4 p-6">
+          <div className="text-center">
+            <CreditCard className="mx-auto h-10 w-10 text-muted-foreground" />
+            <h2 className="mt-3 text-lg font-semibold">Subscription inactive</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {me?.business?.subscription_status === "suspended"
+                ? "Your account has been suspended. Please contact support."
+                : "Your trial has expired. Please upgrade your plan to continue."}
+            </p>
+          </div>
+          {isOwner && (
+            <Button className="w-full" onClick={() => nav({ to: "/app/subscription" })}>
+              View subscription
+            </Button>
+          )}
+          {!isOwner && (
+            <Button className="w-full" variant="outline" onClick={signOut}>
+              Sign out
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   const biz = me.business;
   const isSuper = role === "super_admin";
-  const isOwner = role === "owner";
   const isReception = role === "receptionist";
   const isRest = role === "restaurant_staff";
   const isBar = role === "bar_staff";

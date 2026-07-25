@@ -33,6 +33,20 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const PLAN_LIMITS: Record<string, number> = { trial: 3, starter: 5, business: 10, pro: 20, enterprise: 0 };
+    const { data: biz } = await supabase.from("businesses").select("plan").eq("id", businessId).single();
+    const limit = PLAN_LIMITS[biz?.plan ?? "trial"] ?? 3;
+    if (limit > 0) {
+      const { count } = await supabase
+        .from("user_roles")
+        .select("id", { count: "exact", head: true })
+        .eq("business_id", businessId)
+        .in("role", ["receptionist", "restaurant_staff", "bar_staff", "housekeeping"]);
+      if ((count ?? 0) >= limit) {
+        throw new Error(`Your plan allows ${limit} staff. Upgrade to add more.`);
+      }
+    }
+
     const email = `${businessCode.toLowerCase()}-${username.toLowerCase()}@staff.zamlodge.local`;
 
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({

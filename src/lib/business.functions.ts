@@ -319,6 +319,11 @@ export async function decideStockAdjustment(data: z.infer<typeof decideAdjustmen
   const parsed = decideAdjustmentSchema.parse(data);
   const userId = await getUserId();
 
+  const { data: profile } = await supabase.from("profiles").select("business_id").eq("id", userId).maybeSingle();
+  if (!profile?.business_id) throw new Error("Not authenticated");
+  const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("business_id", profile.business_id).maybeSingle();
+  if (roleData?.role !== "owner") throw new Error("Only owners can approve stock adjustments");
+
   const { data: req } = await supabase
     .from("stock_adjustment_requests")
     .select("*")

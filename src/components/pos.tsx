@@ -172,7 +172,7 @@ export function POS({ orderType }: { orderType: OrderType }) {
       .single();
     if (error || !order) return toast.error(error?.message ?? "Could not create order");
 
-    await supabase.from("order_items").insert(
+    const { error: itemsErr } = await supabase.from("order_items").insert(
       cart.map((l) => ({
         business_id: bizId,
         order_id: order.id,
@@ -183,6 +183,10 @@ export function POS({ orderType }: { orderType: OrderType }) {
         line_total: l.unitPrice * l.quantity,
       })),
     );
+    if (itemsErr) {
+      await supabase.from("orders").delete().eq("id", order.id);
+      return toast.error("Failed to save order items: " + itemsErr.message);
+    }
 
     if (payMethod === "charge_to_room") {
       try {
@@ -190,6 +194,7 @@ export function POS({ orderType }: { orderType: OrderType }) {
         toast.success("Charged to room");
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Charge failed");
+        await supabase.from("orders").update({ status: "cancelled" }).eq("id", order.id);
         setPayOpen(false);
         return;
       }
@@ -209,15 +214,15 @@ export function POS({ orderType }: { orderType: OrderType }) {
       toast.success(`Paid · K${grandTotal.toFixed(2)}`);
     }
 
-    await Promise.all(cart.map(async (l) => {
+    for (const l of cart) {
       const { data: p } = await supabase
         .from("products")
         .select("stock_quantity")
         .eq("id", l.productId)
         .single();
       const prev = Number(p?.stock_quantity ?? 0);
-      const next = prev - l.quantity;
-      await supabase.from("products").update({ stock_quantity: next }).eq("id", l.productId);
+      const next = Math.max(0, prev - l.quantity);
+      await supabase.from("products").update({ stock_quantity: next }).eq("id", l.productId).lt("stock_quantity", prev);
       await supabase.from("stock_movements").insert({
         business_id: bizId,
         product_id: l.productId,
@@ -228,13 +233,12 @@ export function POS({ orderType }: { orderType: OrderType }) {
         reference: order.id,
         created_by: me?.profile?.id ?? null,
       });
-    }));
+    }
 
-    // Open bills hold the table; paid bills release it
     if (useTableId) {
       await supabase
         .from("restaurant_tables")
-        .update({ status: payMethod === "charge_to_room" ? "occupied" : "available" })
+        .update({ status: "available" })
         .eq("id", useTableId);
     }
 

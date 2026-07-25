@@ -32,6 +32,8 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const cappedRoomCount = Math.min(Number(roomCount) || 0, 5);
+
     const letters = businessName
       .toUpperCase()
       .replace(/[^A-Z ]/g, "")
@@ -61,7 +63,7 @@ serve(async (req) => {
         phone,
         email,
         address,
-        room_count: roomCount ?? 0,
+        room_count: cappedRoomCount,
         plan: "trial",
         subscription_status: "trial",
         subscription_expires_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
