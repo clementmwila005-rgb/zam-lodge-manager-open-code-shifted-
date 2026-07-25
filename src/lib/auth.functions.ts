@@ -173,3 +173,7 @@ export const PLATFORM_ADMIN_NAME = "Platform Admin";
 export async function ensurePlatformAdmin() {
   return callEdge<{ ok: true }>("ensure-platform-admin", {});
 }
+
+export async function deleteBusiness(businessId: string) {
+  return callEdge<{ ok: boolean; deletedUsers: number }>("delete-business", { businessId });
+}
