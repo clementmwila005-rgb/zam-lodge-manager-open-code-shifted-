@@ -10,6 +10,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Bun
+bun.lock
+bun.lockb
+bunfig.toml
+
 node_modules
 dist
 dist-ssr
