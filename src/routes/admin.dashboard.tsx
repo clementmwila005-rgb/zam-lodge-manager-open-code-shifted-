@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PLANS } from "@/lib/plans";
 
 export const Route = createFileRoute("/admin/dashboard")({ component: AdminDashboard });
 
@@ -77,6 +79,24 @@ function AdminDashboard() {
     qc.invalidateQueries();
   }
 
+  async function setPlan(id: string, plan: string) {
+    const { data: b } = await supabase.from("businesses").select("plan").eq("id", id).single();
+    if (!b) return;
+    const { error } = await supabase.from("businesses").update({ plan: plan as "starter" | "business" | "pro" | "enterprise" | "trial" }).eq("id", id);
+    if (error) return toast.error(error.message);
+    const { data: user } = await supabase.auth.getUser();
+    await supabase.from("audit_logs").insert({
+      business_id: id,
+      user_id: user.user?.id,
+      action: "business.plan_changed",
+      entity: "business",
+      entity_id: id,
+      after_value: { from: b.plan, to: plan } as never,
+    });
+    toast.success(`Plan changed to ${plan}`);
+    qc.invalidateQueries();
+  }
+
   const t = totals.data;
   return (
     <div className="p-4 sm:p-6">
@@ -112,7 +132,20 @@ function AdminDashboard() {
                 <td className="px-3 py-2 font-medium">{b.name}</td>
                 <td className="px-3 py-2 font-mono">{b.business_code}</td>
                 <td className="px-3 py-2"><div>{b.owner_name}</div><div className="text-xs text-muted-foreground">{b.email}</div></td>
-                <td className="px-3 py-2 capitalize">{b.plan}</td>
+                <td className="px-3 py-2">
+                  <Select value={b.plan} onValueChange={(v) => setPlan(b.id, v)}>
+                    <SelectTrigger className="h-7 w-[100px] text-xs capitalize">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PLANS.map((p) => (
+                        <SelectItem key={p.key} value={p.key} className="text-xs capitalize">
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </td>
                 <td className="px-3 py-2">
                   <Badge variant={b.subscription_status === "active" ? "default" : "outline"} className="capitalize">
                     {b.subscription_status}
