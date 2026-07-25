@@ -163,7 +163,8 @@ export async function getMyContext() {
 }
 
 // ---- Platform super admin ----
-export const PLATFORM_ADMIN_EMAIL = import.meta.env.VITE_PLATFORM_ADMIN_EMAIL ?? "";
+export const PLATFORM_ADMIN_EMAIL =
+  import.meta.env.VITE_PLATFORM_ADMIN_EMAIL || "clementmwila005@gmail.com";
 export const PLATFORM_ADMIN_NAME = "Platform Admin";
 
 export async function ensurePlatformAdmin() {
