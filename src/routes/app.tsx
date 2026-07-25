@@ -66,6 +66,11 @@ function AppLayout() {
 
   useEffect(() => {
     if (!userId || !bizId || isSuperEarly) return;
+
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
     const channel = supabase
       .channel("new-messages")
       .on("postgres_changes", {
@@ -76,6 +81,27 @@ function AppLayout() {
       }, (payload) => {
         const msg = payload.new as { title?: string; body?: string };
         toast.info(msg.title ?? "New message", { description: msg.body?.slice(0, 100) });
+
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification(msg.title ?? "New message", {
+            body: msg.body?.slice(0, 200) ?? "",
+            icon: "/icon-192.png",
+            badge: "/icon-192.png",
+            tag: "zam-lodge-message",
+          });
+        }
+
+        if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.showNotification(msg.title ?? "New message", {
+              body: msg.body?.slice(0, 200) ?? "",
+              icon: "/icon-192.png",
+              badge: "/icon-192.png",
+              tag: "zam-lodge-message",
+            });
+          });
+        }
+
         unreadCount.refetch();
       })
       .subscribe();

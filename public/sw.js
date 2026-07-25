@@ -1,4 +1,4 @@
-const CACHE_NAME = "zam-lodge-v1";
+const CACHE_NAME = "zam-lodge-v2";
 const PRECACHE = ["/", "/index.html"];
 
 self.addEventListener("install", (e) => {
@@ -28,5 +28,36 @@ self.addEventListener("fetch", (e) => {
         return res;
       })
       .catch(() => caches.match(e.request))
+  );
+});
+
+self.addEventListener("push", (e) => {
+  if (!e.data) return;
+  const data = e.data.json();
+  e.waitUntil(
+    self.registration.showNotification(data.title || "Zam Lodge", {
+      body: data.body || "",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      tag: data.tag || "zam-lodge",
+      data: data.url || "/app/messages",
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = e.notification.data || "/app/messages";
+  e.waitUntil(
+    self.clients.matchAll({ type: "window" }).then((clients) => {
+      for (const c of clients) {
+        if (c.url.includes(self.registration.scope) && "focus" in c) {
+          c.focus();
+          c.navigate(url);
+          return;
+        }
+      }
+      self.clients.openWindow(url);
+    })
   );
 });
