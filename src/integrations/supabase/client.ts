@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
 function isNewSupabaseApiKey(value: string): boolean {
-  return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
+  return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_") || value.startsWith("sbp_") || value.startsWith("sbs_");
 }
 
 function createSupabaseFetch(supabaseKey: string): typeof fetch {
@@ -34,17 +34,15 @@ function createSupabaseClient() {
   // Fall back to process.env for SSR (server-side rendering)
   const SUPABASE_URL =
     import.meta.env.VITE_SUPABASE_URL ||
-    process.env.SUPABASE_URL ||
-    "https://jwzsyuemsgicawgvawej.supabase.co";
+    process.env.SUPABASE_URL;
   const SUPABASE_PUBLISHABLE_KEY =
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.SUPABASE_PUBLISHABLE_KEY ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3enN5dWVtc2dpY2F3Z3Zhd2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3ODU2NjAsImV4cCI6MjEwMDM2MTY2MH0.yqkB1TiEAZ-NIAKgCy_gf6GQEAojtzNm21WA-463sdE";
+    process.env.SUPABASE_PUBLISHABLE_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     const missing = [
-      ...(!SUPABASE_URL ? ["SUPABASE_URL"] : []),
-      ...(!SUPABASE_PUBLISHABLE_KEY ? ["SUPABASE_PUBLISHABLE_KEY"] : []),
+      ...(!SUPABASE_URL ? ["VITE_SUPABASE_URL"] : []),
+      ...(!SUPABASE_PUBLISHABLE_KEY ? ["VITE_SUPABASE_PUBLISHABLE_KEY"] : []),
     ];
     const message = `Missing Supabase environment variable(s): ${missing.join(", ")}. Please set them in your .env file.`;
     console.error(`[Supabase] ${message}`);
