@@ -2,22 +2,19 @@ import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { ShieldCheck, LogOut } from "lucide-react";
 import { useSession, useMe, useSignOut, primaryRole } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/admin")({ component: AdminLayout });
 
 function AdminLayout() {
   const nav = useNavigate();
   const { session, loading } = useSession();
-  const { data: me, isLoading: meLoading, isError } = useMe();
+  const { data: me, isLoading: meLoading, isError, error: meError, refetch } = useMe();
   const signOut = useSignOut("/admin/login");
 
   useEffect(() => {
     if (!loading && !session) nav({ to: "/admin/login", replace: true });
   }, [loading, session, nav]);
-
-  useEffect(() => {
-    if (isError) nav({ to: "/admin/login", replace: true });
-  }, [isError, nav]);
 
   const role = primaryRole(me?.roles);
   useEffect(() => {
@@ -31,6 +28,20 @@ function AdminLayout() {
   }
 
   if (loading || meLoading || !me) {
+    if (isError && !meLoading) {
+      return (
+        <div className="grid min-h-screen place-items-center bg-background px-4">
+          <div className="w-full max-w-sm text-center space-y-4">
+            <div className="text-destructive text-sm font-medium">Failed to load admin profile</div>
+            <p className="text-sm text-muted-foreground">{meError?.message || "Something went wrong"}</p>
+            <div className="flex gap-3 justify-center">
+              <Button variant="outline" onClick={() => refetch()}>Retry</Button>
+              <Button variant="ghost" onClick={() => signOut()}>Sign out</Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">
         Loading...

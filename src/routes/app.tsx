@@ -15,14 +15,13 @@ export const Route = createFileRoute("/app")({ component: AppLayout });
 
 function AppLayout() {
   const nav = useNavigate();
-  const { session, loading } = useSession();
-  const { data: me, isLoading: meLoading, isError } = useMe();
+  const { session, loading, error: sessionError } = useSession();
+  const { data: me, isLoading: meLoading, isError, error: meError, refetch } = useMe();
   const signOut = useSignOut();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => { if (!loading && !session) nav({ to: "/auth", replace: true }); }, [loading, session, nav]);
-  useEffect(() => { if (isError) nav({ to: "/auth", replace: true }); }, [isError, nav]);
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   const isSuperEarly = primaryRole(me?.roles) === "super_admin";
@@ -109,6 +108,20 @@ function AppLayout() {
   }, [userId, bizId, isSuperEarly]);
 
   if (loading || meLoading || !me) {
+    if (isError && !meLoading) {
+      return (
+        <div className="grid min-h-screen place-items-center bg-background px-4">
+          <div className="w-full max-w-sm text-center space-y-4">
+            <div className="text-destructive text-sm font-medium">Failed to load your profile</div>
+            <p className="text-sm text-muted-foreground">{meError?.message || "Something went wrong"}</p>
+            <div className="flex gap-3 justify-center">
+              <Button variant="outline" onClick={() => refetch()}>Retry</Button>
+              <Button variant="ghost" onClick={() => signOut()}>Sign out</Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">Loading...</div>;
   }
 

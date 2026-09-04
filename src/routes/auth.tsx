@@ -43,11 +43,29 @@ function AuthPage() {
       return toast.error("Platform admin must use the admin login at /admin/login");
     }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Signed in");
-    navigate({ to: "/app" });
+    try {
+      const { data: existing } = await supabase.auth.getSession();
+      if (existing.session) {
+        await supabase.auth.signOut();
+      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          toast.error("Invalid email or password. Please check your credentials and try again.");
+        } else if (error.message.includes("Email not confirmed")) {
+          toast.error("Please confirm your email address before signing in.");
+        } else {
+          toast.error(error.message);
+        }
+        return;
+      }
+      toast.success("Signed in");
+      navigate({ to: "/app" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sign in failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleForgotPassword(e: React.FormEvent) {

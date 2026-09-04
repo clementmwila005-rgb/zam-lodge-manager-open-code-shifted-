@@ -24,8 +24,20 @@ function StaffLogin() {
     setL(true);
     try {
       const { email } = await resolveStaffEmail({ businessCode, username });
+      const { data: existing } = await supabase.auth.getSession();
+      if (existing.session) {
+        await supabase.auth.signOut();
+      }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          throw new Error("Invalid business code, username, or password. Please check your details.");
+        } else if (error.message.includes("Email not confirmed")) {
+          throw new Error("Staff account not yet activated. Please contact your manager.");
+        } else {
+          throw error;
+        }
+      }
       toast.success("Welcome back");
       nav({ to: "/app" });
     } catch (err) {

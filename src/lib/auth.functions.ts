@@ -138,21 +138,38 @@ export async function createStaff(data: z.infer<typeof createStaffSchema>) {
 export async function getMyContext() {
   const {
     data: { session },
+    error: sessionErr,
   } = await supabase.auth.getSession();
-  if (!session?.user) throw new Error("Not authenticated");
+  if (sessionErr) {
+    throw new Error("Session expired — please sign in again");
+  }
+  if (!session?.user) {
+    throw new Error("Not authenticated — please sign in again");
+  }
   const userId = session.user.id;
 
-  const [{ data: profile }, { data: roles }] = await Promise.all([
+  const [{ data: profile, error: profileErr }, { data: roles, error: rolesErr }] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
     supabase.from("user_roles").select("role, business_id").eq("user_id", userId),
   ]);
+
+  if (profileErr) {
+    throw new Error(`Failed to load profile: ${profileErr.message}`);
+  }
+  if (rolesErr) {
+    throw new Error(`Failed to load roles: ${rolesErr.message}`);
+  }
+
   let business = null;
   if (profile?.business_id) {
-    const { data } = await supabase
+    const { data, error: bizErr } = await supabase
       .from("businesses")
       .select("*")
       .eq("id", profile.business_id)
       .maybeSingle();
+    if (bizErr) {
+      throw new Error(`Failed to load business: ${bizErr.message}`);
+    }
     business = data;
     if (business?.logo_url && !/^https?:\/\//i.test(business.logo_url)) {
       const { data: signed } = await supabase.storage

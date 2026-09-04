@@ -30,8 +30,20 @@ function AdminLogin() {
     }
     setL(true);
     try {
+      const { data: existing } = await supabase.auth.getSession();
+      if (existing.session) {
+        await supabase.auth.signOut();
+      }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          throw new Error("Invalid email or password. Please check your credentials.");
+        } else if (error.message.includes("Email not confirmed")) {
+          throw new Error("Admin account not yet activated.");
+        } else {
+          throw error;
+        }
+      }
       await ensurePlatformAdmin();
       nav({ to: "/admin/dashboard" });
     } catch (err) {

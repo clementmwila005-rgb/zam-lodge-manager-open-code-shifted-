@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyContext } from "@/lib/auth.functions";
@@ -12,19 +12,34 @@ export type BusinessWithLogo = {
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error: sessionError }) => {
+      if (sessionError) {
+        console.warn("[Auth] getSession error:", sessionError.message);
+        setError(sessionError.message);
+        supabase.auth.signOut().catch(() => {});
+        setLoading(false);
+        return;
+      }
       setSession(data.session);
       setLoading(false);
-    }).catch(() => {
+    }).catch((err) => {
+      console.warn("[Auth] getSession failed:", err);
+      setError(err instanceof Error ? err.message : "Session check failed");
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setError(null);
+      setSession(s);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  return { session, loading };
+  const clearError = useCallback(() => setError(null), []);
+
+  return { session, loading, error, clearError };
 }
 
 export function useMe() {
@@ -34,6 +49,8 @@ export function useMe() {
     enabled: !!session,
     queryFn: () => getMyContext(),
     staleTime: 30_000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
 }
 
