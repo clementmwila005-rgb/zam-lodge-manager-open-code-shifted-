@@ -26,15 +26,20 @@ const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-async function callEdge<T = unknown>(name: string, body: unknown, authToken?: string): Promise<T> {
+async function callEdge<T = unknown>(
+  name: string,
+  body: unknown,
+  authToken?: string,
+  requireAuth = true,
+): Promise<T> {
   const token = authToken || (await supabase.auth.getSession()).data.session?.access_token;
-  if (!token) throw new Error("Not authenticated — please sign in again");
+  if (!token && requireAuth) throw new Error("Not authenticated — please sign in again");
   const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "apikey": SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${token}`,
+      Authorization: token ? `Bearer ${token}` : `Bearer ${SUPABASE_ANON_KEY}`,
     },
     body: JSON.stringify(body),
   });
@@ -61,6 +66,8 @@ export async function registerBusiness(data: z.infer<typeof registerSchema>) {
   return callEdge<{ businessId: string; businessCode: string; email: string }>(
     "register-business",
     parsed,
+    undefined,
+    false,
   );
 }
 
